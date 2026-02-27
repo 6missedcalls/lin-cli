@@ -11,6 +11,7 @@
 #include "core/error.h"
 #include "core/output.h"
 #include "core/paginator.h"
+#include "modules/teams/api.h"
 #include "modules/webhooks/api.h"
 #include "modules/webhooks/model.h"
 
@@ -217,7 +218,7 @@ void webhooks_commands::register_commands(CLI::App& app) {
 
         cmd->add_option("--url", opts->url, "Webhook URL")->required();
         cmd->add_option("--label", opts->label, "Webhook label");
-        cmd->add_option("--team", opts->team, "Team ID to scope the webhook");
+        cmd->add_option("--team", opts->team, "Team name, key, or ID");
         cmd->add_flag("--enabled,!--disabled", opts->enabled, "Enable or disable the webhook (default: enabled)");
 
         cmd->callback([opts]() {
@@ -227,7 +228,7 @@ void webhooks_commands::register_commands(CLI::App& app) {
                     : std::make_optional(opts->label);
                 std::optional<std::string> team_opt = opts->team.empty()
                     ? std::nullopt
-                    : std::make_optional(opts->team);
+                    : std::make_optional(teams_api::resolve_team_id(opts->team));
 
                 auto webhook = webhooks_api::create_webhook(
                     opts->url,

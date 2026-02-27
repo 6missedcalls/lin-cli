@@ -15,6 +15,7 @@
 #include "core/paginator.h"
 #include "modules/cycles/api.h"
 #include "modules/cycles/model.h"
+#include "modules/teams/api.h"
 
 using json = nlohmann::json;
 
@@ -333,7 +334,7 @@ void cycles_commands::register_commands(CLI::App& app) {
         };
         auto opts = std::make_shared<CreateOpts>();
 
-        cmd->add_option("--team", opts->team, "Team ID")->required();
+        cmd->add_option("--team", opts->team, "Team name, key, or ID")->required();
         cmd->add_option("--starts-at", opts->starts_at, "Start date (YYYY-MM-DD or ISO 8601)")->required();
         cmd->add_option("--ends-at", opts->ends_at, "End date (YYYY-MM-DD or ISO 8601)")->required();
         cmd->add_option("--name", opts->name, "Cycle name");
@@ -342,7 +343,7 @@ void cycles_commands::register_commands(CLI::App& app) {
         cmd->callback([opts]() {
             try {
                 CycleCreateInput input;
-                input.team_id = opts->team;
+                input.team_id = teams_api::resolve_team_id(opts->team);
                 input.starts_at = opts->starts_at;
                 input.ends_at = opts->ends_at;
 

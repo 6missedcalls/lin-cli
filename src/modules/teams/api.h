@@ -44,6 +44,11 @@ Connection<Team> list_teams(int first = 50, const std::optional<std::string>& af
 // Get a single team by ID or key
 Team get_team(const std::string& id_or_key);
 
+// Resolve a team name, key, or ID to a team ID.
+// Tries get_team(input) first (works for ID/key), then falls back
+// to searching by display name across all teams.
+std::string resolve_team_id(const std::string& input);
+
 // List workflow states for a team
 Connection<WorkflowState> list_workflow_states(const std::string& team_id);
 

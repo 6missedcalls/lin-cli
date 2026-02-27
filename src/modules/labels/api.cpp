@@ -1,5 +1,6 @@
 #include "modules/labels/api.h"
 
+#include <algorithm>
 #include <string>
 
 #include "core/auth.h"
@@ -204,6 +205,36 @@ void delete_label(const std::string& id) {
     if (!success) {
         throw LinError(ErrorKind::Internal, "Failed to delete label " + id);
     }
+}
+
+std::string resolve_label_id(const std::string& input) {
+    // If it looks like a UUID, try direct lookup
+    if (input.size() == 36 && input[8] == '-') {
+        try {
+            get_label(input);
+            return input;
+        } catch (const LinError&) {
+            // Not a valid label ID — fall through to name search
+        }
+    }
+
+    // Search by name (case-insensitive)
+    auto connection = list_labels(250);
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    for (const auto& label : connection.nodes) {
+        std::string lower_name = label.name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        if (lower_name == lower_input) {
+            return label.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "Label not found: '" + input + "'. Use a label name or ID.");
 }
 
 }  // namespace labels_api

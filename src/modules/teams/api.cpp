@@ -1,5 +1,6 @@
 #include "modules/teams/api.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -218,6 +219,41 @@ Team get_team(const std::string& id_or_key) {
     Team team;
     from_json(data.at("team"), team);
     return team;
+}
+
+std::string resolve_team_id(const std::string& input) {
+    // Try direct lookup by ID or key first (fast path)
+    try {
+        auto team = get_team(input);
+        return team.id;
+    } catch (const LinError&) {
+        // Not a valid ID or key — fall through to name search
+    }
+
+    // Search by display name (case-insensitive substring match)
+    auto teams = list_teams(250);
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    for (const auto& team : teams.nodes) {
+        std::string lower_name = team.display_name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        if (lower_name == lower_input) {
+            return team.id;
+        }
+
+        std::string lower_raw_name = team.name;
+        std::transform(lower_raw_name.begin(), lower_raw_name.end(), lower_raw_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        if (lower_raw_name == lower_input) {
+            return team.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "Team not found: '" + input + "'. Use a team name, key, or ID.");
 }
 
 Connection<WorkflowState> list_workflow_states(const std::string& team_id) {

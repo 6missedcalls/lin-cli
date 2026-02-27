@@ -55,7 +55,17 @@ int main(int argc, char** argv) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     CLI::App app{"lin \xe2\x80\x94 fast, terminal-native Linear client"};
-    app.set_version_flag("--version", std::string("lin ") + LIN_VERSION);
+    app.add_flag_function("--version", [](int) {
+        std::cout << R"(
+  ██╗     ██╗███╗   ██╗
+  ██║     ██║████╗  ██║
+  ██║     ██║██╔██╗ ██║
+  ██║     ██║██║╚██╗██║
+  ███████╗██║██║ ╚████║
+  ╚══════╝╚═╝╚═╝  ╚═══╝
+)" << "  v" << LIN_VERSION << "\n" << std::endl;
+        throw CLI::Success();
+    }, "Show version");
     app.require_subcommand(1);
     app.fallthrough();
     app.get_formatter()->column_width(32);

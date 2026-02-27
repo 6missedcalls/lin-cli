@@ -13,6 +13,7 @@
 #include "core/output.h"
 #include "modules/labels/api.h"
 #include "modules/labels/model.h"
+#include "modules/teams/api.h"
 
 using json = nlohmann::json;
 
@@ -213,7 +214,7 @@ void labels_commands::register_commands(CLI::App& app) {
 
         cmd->add_option("--name", opts->name, "Label name")->required();
         cmd->add_option("--color", opts->color, "Label color as hex (e.g. #FF0000)")->required();
-        cmd->add_option("--team", opts->team, "Team ID to scope label to");
+        cmd->add_option("--team", opts->team, "Team name, key, or ID");
         cmd->add_option("--description", opts->description, "Label description");
         cmd->add_option("--parent", opts->parent, "Parent label ID");
 
@@ -221,7 +222,7 @@ void labels_commands::register_commands(CLI::App& app) {
             try {
                 std::optional<std::string> team_opt = opts->team.empty()
                     ? std::nullopt
-                    : std::make_optional(opts->team);
+                    : std::make_optional(teams_api::resolve_team_id(opts->team));
                 std::optional<std::string> desc_opt = opts->description.empty()
                     ? std::nullopt
                     : std::make_optional(opts->description);

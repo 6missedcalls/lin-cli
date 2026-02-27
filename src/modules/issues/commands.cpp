@@ -9,12 +9,15 @@
 #include <nlohmann/json.hpp>
 
 #include "core/color.h"
+#include "core/config.h"
 #include "core/error.h"
 #include "core/filter.h"
 #include "core/output.h"
 #include "core/paginator.h"
 #include "modules/issues/api.h"
 #include "modules/issues/model.h"
+#include "modules/labels/api.h"
+#include "modules/teams/api.h"
 
 using json = nlohmann::json;
 
@@ -364,12 +367,12 @@ void issues_commands::register_commands(CLI::App& app) {
         auto opts = std::make_shared<CreateOpts>();
 
         cmd->add_option("--title,-t", opts->title, "Issue title")->required();
-        cmd->add_option("--team", opts->team, "Team ID (required unless default set)")->required();
+        cmd->add_option("--team", opts->team, "Team name, key, or ID (uses default if set)");
         cmd->add_option("--description,-d", opts->description, "Issue description");
         cmd->add_option("--assignee", opts->assignee, "Assignee ID");
         cmd->add_option("--priority,-p", opts->priority, "Priority (none, urgent, high, normal, low)");
         cmd->add_option("--state", opts->state, "State ID");
-        cmd->add_option("--label,-l", opts->labels, "Label ID (repeatable)");
+        cmd->add_option("--label,-l", opts->labels, "Label name or ID (repeatable)");
         cmd->add_option("--project", opts->project, "Project ID");
         cmd->add_option("--cycle", opts->cycle, "Cycle ID");
         cmd->add_option("--parent", opts->parent, "Parent issue ID");
@@ -380,7 +383,25 @@ void issues_commands::register_commands(CLI::App& app) {
             try {
                 IssueCreateInput input;
                 input.title = opts->title;
-                input.team_id = opts->team;
+
+                // Resolve team: explicit flag > config default > auto-detect single team
+                std::string team_input = opts->team;
+                if (team_input.empty()) {
+                    const Config config = load_config();
+                    if (config.defaults.team.has_value() && !config.defaults.team->empty()) {
+                        team_input = *config.defaults.team;
+                    } else {
+                        // Auto-detect: if there's exactly one team, use it
+                        auto teams = teams_api::list_teams(2);
+                        if (teams.nodes.size() == 1) {
+                            team_input = teams.nodes.front().id;
+                        } else {
+                            print_error("No team specified. Use --team or set a default with: lin config set defaults.team \"YourTeam\"");
+                            return;
+                        }
+                    }
+                }
+                input.team_id = teams_api::resolve_team_id(team_input);
 
                 if (!opts->description.empty()) input.description = opts->description;
                 if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
@@ -401,7 +422,13 @@ void issues_commands::register_commands(CLI::App& app) {
                     }
                 }
 
-                input.label_ids = opts->labels;
+                // Resolve label names to IDs
+                std::vector<std::string> resolved_labels;
+                resolved_labels.reserve(opts->labels.size());
+                for (const auto& label_input : opts->labels) {
+                    resolved_labels.push_back(labels_api::resolve_label_id(label_input));
+                }
+                input.label_ids = resolved_labels;
 
                 auto issue = issues_api::create_issue(input);
                 print_success("Created " + issue.identifier);

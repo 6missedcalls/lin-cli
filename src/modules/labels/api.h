@@ -38,4 +38,9 @@ IssueLabel update_label(
 // Delete a label
 void delete_label(const std::string& id);
 
+// Resolve a label name or ID to a label ID.
+// Returns the input unchanged if it looks like a UUID; otherwise
+// searches labels by name (case-insensitive).
+std::string resolve_label_id(const std::string& input);
+
 }  // namespace labels_api

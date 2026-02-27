@@ -16,6 +16,7 @@
 #include "core/output.h"
 #include "modules/projects/api.h"
 #include "modules/projects/model.h"
+#include "modules/teams/api.h"
 
 using json = nlohmann::json;
 
@@ -389,7 +390,7 @@ void projects_commands::register_commands(CLI::App& app) {
         cmd->add_option("--priority,-p", opts->priority, "Priority (none, urgent, high, normal, low)");
         cmd->add_option("--start-date", opts->start_date, "Start date (YYYY-MM-DD)");
         cmd->add_option("--target-date", opts->target_date, "Target date (YYYY-MM-DD)");
-        cmd->add_option("--team", opts->team_ids, "Team ID (repeatable)");
+        cmd->add_option("--team", opts->team_ids, "Team name, key, or ID (repeatable)");
         cmd->add_option("--member", opts->member_ids, "Member user ID (repeatable)");
 
         cmd->callback([opts]() {
@@ -404,7 +405,12 @@ void projects_commands::register_commands(CLI::App& app) {
                 if (!opts->status.empty())      input.status_id = opts->status;
                 if (!opts->start_date.empty())  input.start_date = opts->start_date;
                 if (!opts->target_date.empty()) input.target_date = opts->target_date;
-                input.team_ids = opts->team_ids;
+                std::vector<std::string> resolved_teams;
+                resolved_teams.reserve(opts->team_ids.size());
+                for (const auto& t : opts->team_ids) {
+                    resolved_teams.push_back(teams_api::resolve_team_id(t));
+                }
+                input.team_ids = resolved_teams;
                 input.member_ids = opts->member_ids;
 
                 if (!opts->priority.empty()) {
