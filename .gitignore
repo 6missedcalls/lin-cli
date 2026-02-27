@@ -1,0 +1,10 @@
+build/
+.cache/
+*.o
+*.a
+compile_commands.json
+.env
+*.pem
+*.key
+config.toml
+.DS_Store
