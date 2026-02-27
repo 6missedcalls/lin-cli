@@ -5,11 +5,14 @@
 #include <utility>
 #include <vector>
 
+// Forward declaration avoids exposing curl.h to all consumers.
+// CURL is a typedef for an opaque struct in the curl C API.
+using CURL = void;
+
 struct HttpResponse {
     long status_code = 0;
     std::string body;
     std::string error_message;
-    // Rate limit headers
     std::optional<int> retry_after;
 };
 
@@ -29,9 +32,9 @@ public:
         const std::vector<std::pair<std::string, std::string>>& headers
     );
 
-    void set_timeout(long timeout_ms);
+    void set_timeout(long timeout_ms) noexcept;
 
 private:
-    void* curl_handle_;  // CURL* but avoid including curl.h in header
+    CURL* curl_handle_;
     long timeout_ms_ = 30000;
 };

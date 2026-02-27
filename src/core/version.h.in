@@ -1,0 +1,3 @@
+#pragma once
+
+#define LIN_VERSION "@PROJECT_VERSION@"

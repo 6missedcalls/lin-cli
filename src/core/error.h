@@ -24,8 +24,8 @@ class LinError : public std::runtime_error {
 public:
     LinError(ErrorKind kind, const std::string& message);
 
-    ErrorKind kind() const;
-    std::optional<int> retry_after() const;
+    [[nodiscard]] ErrorKind kind() const noexcept;
+    [[nodiscard]] std::optional<int> retry_after() const noexcept;
     void set_retry_after(int seconds);
 
 private:

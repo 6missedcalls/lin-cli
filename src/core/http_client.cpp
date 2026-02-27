@@ -87,7 +87,7 @@ HttpClient::HttpClient()
 
 HttpClient::~HttpClient() {
     if (curl_handle_ != nullptr) {
-        curl_easy_cleanup(static_cast<CURL*>(curl_handle_));
+        curl_easy_cleanup(curl_handle_);
     }
 }
 
@@ -103,7 +103,7 @@ HttpClient& HttpClient::operator=(HttpClient&& other) noexcept {
         return *this;
     }
     if (curl_handle_ != nullptr) {
-        curl_easy_cleanup(static_cast<CURL*>(curl_handle_));
+        curl_easy_cleanup(curl_handle_);
     }
     curl_handle_ = other.curl_handle_;
     timeout_ms_ = other.timeout_ms_;
@@ -121,7 +121,7 @@ HttpResponse HttpClient::post(
         return HttpResponse{0, "", "HttpClient has been moved from", std::nullopt};
     }
 
-    auto* curl = static_cast<CURL*>(curl_handle_);
+    auto* curl = curl_handle_;
 
     // Reset all options from any previous request
     curl_easy_reset(curl);
@@ -185,6 +185,6 @@ HttpResponse HttpClient::post(
     return response;
 }
 
-void HttpClient::set_timeout(long timeout_ms) {
+void HttpClient::set_timeout(long timeout_ms) noexcept {
     timeout_ms_ = timeout_ms;
 }

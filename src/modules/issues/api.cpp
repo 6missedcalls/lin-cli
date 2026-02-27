@@ -73,10 +73,16 @@ mutation IssueCreate($input: IssueCreateInput!) {
     issueCreate(input: $input) {
         issue {
             id identifier title number priority priorityLabel
-            url branchName createdAt updatedAt
+            url branchName createdAt updatedAt archivedAt trashed
+            description dueDate startedAt completedAt canceledAt estimate
             state { id name type }
             assignee { id displayName }
+            creator { id displayName }
             team { id name key }
+            labels { nodes { id name color } }
+            project { id name }
+            cycle { id number }
+            parent { id identifier }
         }
     }
 }
@@ -87,10 +93,16 @@ mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
     issueUpdate(id: $id, input: $input) {
         issue {
             id identifier title number priority priorityLabel
-            url branchName createdAt updatedAt
+            url branchName createdAt updatedAt archivedAt trashed
+            description dueDate startedAt completedAt canceledAt estimate
             state { id name type }
             assignee { id displayName }
+            creator { id displayName }
             team { id name key }
+            labels { nodes { id name color } }
+            project { id name }
+            cycle { id number }
+            parent { id identifier }
         }
     }
 }
@@ -159,6 +171,12 @@ mutation IssueRelationDelete($id: String!) {
 static const std::string ISSUE_BATCH_UPDATE_MUTATION = R"gql(
 mutation IssueBatchUpdate($ids: [UUID!]!, $input: IssueUpdateInput!) {
     issueBatchUpdate(ids: $ids, input: $input) { issues { id } }
+}
+)gql";
+
+static const std::string PRIORITY_VALUES_QUERY = R"gql(
+query IssuePriorityValues {
+    issuePriorityValues { priority label }
 }
 )gql";
 
@@ -234,6 +252,19 @@ static json build_update_variables(const IssueUpdateInput& input) {
 // ---------------------------------------------------------------------------
 
 namespace issues_api {
+
+std::vector<PriorityValue> list_priority_values() {
+    auto data = execute_graphql(PRIORITY_VALUES_QUERY, json::object());
+
+    std::vector<PriorityValue> values;
+    const auto& arr = data.at("issuePriorityValues");
+    for (const auto& item : arr) {
+        PriorityValue pv;
+        from_json(item, pv);
+        values.push_back(pv);
+    }
+    return values;
+}
 
 Connection<Issue> list_issues(const IssueListOptions& opts) {
     json variables = json::object();

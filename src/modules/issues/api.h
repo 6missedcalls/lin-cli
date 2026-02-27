@@ -44,6 +44,9 @@ struct IssueUpdateInput {
 
 namespace issues_api {
 
+// Get workspace priority values (dynamic labels from Linear API)
+std::vector<PriorityValue> list_priority_values();
+
 // List issues with filtering and pagination
 Connection<Issue> list_issues(const IssueListOptions& opts);
 

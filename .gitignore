@@ -1,10 +1,36 @@
+# Build artifacts
 build/
-.cache/
+cmake-build-*/
+out/
 *.o
 *.a
+*.so
+*.dylib
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
 compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / credentials
 .env
+.env.*
 *.pem
 *.key
 config.toml
-.DS_Store
+
+# AI / development tooling
+CLAUDE.md
+ARCHITECTURE.md
+.claude/
+
+# Reference docs (Linear API schema — not our code)
+docs/

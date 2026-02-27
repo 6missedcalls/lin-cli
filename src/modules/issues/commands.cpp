@@ -843,6 +843,50 @@ void issues_commands::register_commands(CLI::App& app) {
     }
 
     // -----------------------------------------------------------------------
+    // issues priorities — list workspace priority values
+    // -----------------------------------------------------------------------
+    {
+        auto* cmd = issues->add_subcommand("priorities", "List workspace priority values");
+
+        cmd->callback([]() {
+            try {
+                auto values = issues_api::list_priority_values();
+
+                if (get_output_format() == OutputFormat::Json) {
+                    json arr = json::array();
+                    for (const auto& pv : values) {
+                        arr.push_back({{"priority", pv.priority}, {"label", pv.label}});
+                    }
+                    output_json(arr);
+                    return;
+                }
+
+                if (get_output_format() == OutputFormat::Csv) {
+                    output_csv_header({"PRIORITY", "LABEL"});
+                    for (const auto& pv : values) {
+                        output_csv_row({std::to_string(pv.priority), pv.label});
+                    }
+                    return;
+                }
+
+                TableRenderer table({
+                    {"PRIORITY", 4, 10, false},
+                    {"LABEL",    4, 30, false},
+                });
+                for (const auto& pv : values) {
+                    table.add_row({
+                        color::priority(pv.priority, std::to_string(pv.priority)),
+                        color::priority(pv.priority, pv.label),
+                    });
+                }
+                table.render(std::cout);
+            } catch (const LinError& e) {
+                print_error(format_error(e));
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------------
     // issues bulk (subcommand group)
     // -----------------------------------------------------------------------
     {

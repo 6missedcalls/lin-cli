@@ -60,6 +60,16 @@ struct Issue {
     std::vector<std::string> previous_identifiers;
 };
 
+struct PriorityValue {
+    int priority = 0;
+    std::string label;
+};
+
+inline void from_json(const json& j, PriorityValue& pv) {
+    pv.priority = j.at("priority").get<int>();
+    pv.label = j.at("label").get<std::string>();
+}
+
 struct IssueRelation {
     std::string id;
     std::string created_at;

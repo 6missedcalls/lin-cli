@@ -15,11 +15,11 @@
 
 static OutputFormat g_format = OutputFormat::Table;
 
-OutputFormat get_output_format() {
+OutputFormat get_output_format() noexcept {
     return g_format;
 }
 
-void set_output_format(OutputFormat fmt) {
+void set_output_format(OutputFormat fmt) noexcept {
     g_format = fmt;
 }
 
@@ -49,11 +49,11 @@ void TableRenderer::add_row(const std::vector<std::string>& values) {
     rows_.push_back(values);
 }
 
-bool TableRenderer::empty() const {
+bool TableRenderer::empty() const noexcept {
     return rows_.empty();
 }
 
-size_t TableRenderer::row_count() const {
+size_t TableRenderer::row_count() const noexcept {
     return rows_.size();
 }
 
@@ -362,24 +362,44 @@ void output_csv_header(const std::vector<std::string>& headers, std::ostream& ou
 // ---------------------------------------------------------------------------
 
 void print_success(const std::string& message) {
+    if (g_format == OutputFormat::Json) {
+        json j;
+        j["success"] = true;
+        j["message"] = message;
+        std::cout << j.dump(2) << "\n";
+        return;
+    }
     if (color::enabled()) {
-        std::cout << color::green("✓") << " " << message << "\n";
+        std::cout << color::green("\xe2\x9c\x93") << " " << message << "\n";
     } else {
         std::cout << "[OK] " << message << "\n";
     }
 }
 
 void print_warning(const std::string& message) {
+    if (g_format == OutputFormat::Json) {
+        json j;
+        j["warning"] = message;
+        std::cerr << j.dump(2) << "\n";
+        return;
+    }
     if (color::enabled()) {
-        std::cerr << color::yellow("⚠") << " " << message << "\n";
+        std::cerr << color::yellow("\xe2\x9a\xa0") << " " << message << "\n";
     } else {
         std::cerr << "[WARN] " << message << "\n";
     }
 }
 
 void print_error(const std::string& message) {
+    if (g_format == OutputFormat::Json) {
+        json j;
+        j["success"] = false;
+        j["error"] = message;
+        std::cerr << j.dump(2) << "\n";
+        return;
+    }
     if (color::enabled()) {
-        std::cerr << color::red("✗") << " " << message << "\n";
+        std::cerr << color::red("\xe2\x9c\x97") << " " << message << "\n";
     } else {
         std::cerr << "[ERROR] " << message << "\n";
     }

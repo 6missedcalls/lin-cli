@@ -15,8 +15,8 @@ enum class OutputFormat {
     Csv
 };
 
-OutputFormat get_output_format();
-void set_output_format(OutputFormat fmt);
+[[nodiscard]] OutputFormat get_output_format() noexcept;
+void set_output_format(OutputFormat fmt) noexcept;
 
 struct TableColumn {
     std::string header;
@@ -32,8 +32,8 @@ public:
     void add_row(const std::vector<std::string>& values);
     void render(std::ostream& out) const;
 
-    bool empty() const;
-    size_t row_count() const;
+    [[nodiscard]] bool empty() const noexcept;
+    [[nodiscard]] size_t row_count() const noexcept;
 
 private:
     std::vector<TableColumn> columns_;

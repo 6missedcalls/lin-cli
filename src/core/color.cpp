@@ -42,11 +42,11 @@ int hex_pair_to_int(char high, char low) {
 
 }  // namespace
 
-bool enabled() {
+bool enabled() noexcept {
     return color_enabled_flag();
 }
 
-void set_enabled(bool enable) {
+void set_enabled(bool enable) noexcept {
     color_enabled_flag() = enable;
 }
 

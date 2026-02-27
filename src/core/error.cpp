@@ -7,11 +7,11 @@
 LinError::LinError(ErrorKind kind, const std::string& message)
     : std::runtime_error(message), kind_(kind), retry_after_(std::nullopt) {}
 
-ErrorKind LinError::kind() const {
+ErrorKind LinError::kind() const noexcept {
     return kind_;
 }
 
-std::optional<int> LinError::retry_after() const {
+std::optional<int> LinError::retry_after() const noexcept {
     return retry_after_;
 }
 
