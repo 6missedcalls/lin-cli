@@ -256,6 +256,32 @@ std::string resolve_team_id(const std::string& input) {
         "Team not found: '" + input + "'. Use a team name, key, or ID.");
 }
 
+std::string resolve_state_id(const std::string& team_id, const std::string& input) {
+    // UUID heuristic: contains dashes and is 36 chars (standard UUID format)
+    if (input.size() == 36 && input[8] == '-' && input[13] == '-') {
+        return input;
+    }
+
+    // Fetch workflow states for the team and match by name (case-insensitive)
+    auto states = list_workflow_states(team_id);
+
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    for (const auto& s : states.nodes) {
+        std::string lower_name = s.name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        if (lower_name == lower_input) {
+            return s.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "Workflow state '" + input + "' not found. Use 'lin teams states' to list available states.");
+}
+
 Connection<WorkflowState> list_workflow_states(const std::string& team_id) {
     json variables = json::object();
     variables["teamId"] = team_id;

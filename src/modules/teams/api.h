@@ -49,6 +49,11 @@ Team get_team(const std::string& id_or_key);
 // to searching by display name across all teams.
 std::string resolve_team_id(const std::string& input);
 
+// Resolve a state name or ID to a workflow state UUID.
+// If the input looks like a UUID, returns it as-is.
+// Otherwise searches workflow states by name (case-insensitive) within the team.
+std::string resolve_state_id(const std::string& team_id, const std::string& input);
+
 // List workflow states for a team
 Connection<WorkflowState> list_workflow_states(const std::string& team_id);
 

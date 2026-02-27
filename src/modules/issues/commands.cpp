@@ -257,9 +257,14 @@ void issues_commands::register_commands(CLI::App& app) {
                 std::optional<std::string> cycle_opt = opts->cycle.empty() ? std::nullopt : std::make_optional(opts->cycle);
                 std::optional<std::string> creator_opt = opts->creator.empty() ? std::nullopt : std::make_optional(opts->creator);
 
+                // Treat --assignee @me the same as --me
+                if (!opts->assignee.empty() && opts->assignee == "@me") {
+                    opts->me = true;
+                    assignee_opt = std::nullopt;
+                }
+
                 if (opts->me) {
-                    auto viewer = issues_api::get_viewer();
-                    assignee_opt = viewer.id;
+                    assignee_opt = "@me";
                 }
 
                 json filter = build_issue_filter(
@@ -405,7 +410,9 @@ void issues_commands::register_commands(CLI::App& app) {
 
                 if (!opts->description.empty()) input.description = opts->description;
                 if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
-                if (!opts->state.empty()) input.state_id = opts->state;
+                if (!opts->state.empty()) {
+                    input.state_id = teams_api::resolve_state_id(input.team_id, opts->state);
+                }
                 if (!opts->project.empty()) input.project_id = opts->project;
                 if (!opts->cycle.empty()) input.cycle_id = opts->cycle;
                 if (!opts->parent.empty()) input.parent_id = opts->parent;
@@ -480,7 +487,14 @@ void issues_commands::register_commands(CLI::App& app) {
                 if (!opts->title.empty()) input.title = opts->title;
                 if (!opts->description.empty()) input.description = opts->description;
                 if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
-                if (!opts->state.empty()) input.state_id = opts->state;
+                if (!opts->state.empty()) {
+                    std::string team_id = issue.team_id.value_or("");
+                    if (team_id.empty()) {
+                        print_error("Could not determine team for issue " + issue.identifier);
+                        return;
+                    }
+                    input.state_id = teams_api::resolve_state_id(team_id, opts->state);
+                }
                 if (!opts->project.empty()) input.project_id = opts->project;
                 if (!opts->cycle.empty()) input.cycle_id = opts->cycle;
                 if (!opts->parent.empty()) input.parent_id = opts->parent;
@@ -686,8 +700,16 @@ void issues_commands::register_commands(CLI::App& app) {
             try {
                 auto issue = issues_api::get_issue(opts->identifier);
 
+                // Resolve state name to UUID
+                std::string team_id = issue.team_id.value_or("");
+                if (team_id.empty()) {
+                    print_error("Could not determine team for issue " + issue.identifier);
+                    return;
+                }
+                auto state_id = teams_api::resolve_state_id(team_id, opts->state);
+
                 IssueUpdateInput input;
-                input.state_id = opts->state;
+                input.state_id = state_id;
 
                 auto updated = issues_api::update_issue(issue.id, input);
                 print_success("Moved " + updated.identifier + " to " + updated.state_name.value_or(opts->state));
@@ -946,13 +968,23 @@ void issues_commands::register_commands(CLI::App& app) {
                     // Resolve identifiers to IDs
                     std::vector<std::string> ids;
                     ids.reserve(opts->identifiers.size());
+                    std::string first_team_id;
                     for (const auto& ident : opts->identifiers) {
                         auto issue = issues_api::get_issue(ident);
                         ids.push_back(issue.id);
+                        if (first_team_id.empty() && issue.team_id.has_value()) {
+                            first_team_id = issue.team_id.value();
+                        }
                     }
 
                     IssueUpdateInput input;
-                    if (!opts->state.empty()) input.state_id = opts->state;
+                    if (!opts->state.empty()) {
+                        if (first_team_id.empty()) {
+                            print_error("Could not determine team for state resolution.");
+                            return;
+                        }
+                        input.state_id = teams_api::resolve_state_id(first_team_id, opts->state);
+                    }
                     if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
                     if (!opts->project.empty()) input.project_id = opts->project;
 

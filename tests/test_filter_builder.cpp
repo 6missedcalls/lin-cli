@@ -72,3 +72,81 @@ TEST(FilterBuilder, CycleFilter) {
     auto filter = build_cycle_filter("ENG", true);
     EXPECT_FALSE(filter.is_null());
 }
+
+// ---------------------------------------------------------------------------
+// Verify eqIgnoreCase is used (not eqCaseInsensitive) — Linear API compliance
+// ---------------------------------------------------------------------------
+
+TEST(FilterBuilder, StateFilterUsesEqIgnoreCase) {
+    auto filter = build_issue_filter(
+        std::nullopt, std::nullopt, "In Progress", std::nullopt,
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt
+    );
+    EXPECT_TRUE(filter.contains("state"));
+    EXPECT_TRUE(filter["state"]["name"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["state"]["name"]["eqIgnoreCase"], "In Progress");
+}
+
+TEST(FilterBuilder, AssigneeMeFilter) {
+    auto filter = build_issue_filter(
+        std::nullopt, "@me", std::nullopt, std::nullopt,
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt
+    );
+    EXPECT_TRUE(filter.contains("assignee"));
+    EXPECT_TRUE(filter["assignee"].contains("isMe"));
+    EXPECT_EQ(filter["assignee"]["isMe"]["eq"], true);
+}
+
+TEST(FilterBuilder, AssigneeByNameFilter) {
+    auto filter = build_issue_filter(
+        std::nullopt, "Jane", std::nullopt, std::nullopt,
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt
+    );
+    EXPECT_TRUE(filter["assignee"]["displayName"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["assignee"]["displayName"]["eqIgnoreCase"], "Jane");
+}
+
+TEST(FilterBuilder, LabelFilterUsesEqIgnoreCase) {
+    auto filter = build_issue_filter(
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt, "bug", std::nullopt, std::nullopt,
+        std::nullopt
+    );
+    EXPECT_TRUE(filter["labels"]["name"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["labels"]["name"]["eqIgnoreCase"], "bug");
+}
+
+TEST(FilterBuilder, ProjectFilterUsesEqIgnoreCase) {
+    auto filter = build_issue_filter(
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt, std::nullopt, "MyProject", std::nullopt,
+        std::nullopt
+    );
+    EXPECT_TRUE(filter["project"]["name"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["project"]["name"]["eqIgnoreCase"], "MyProject");
+}
+
+TEST(FilterBuilder, CreatorFilterUsesEqIgnoreCase) {
+    auto filter = build_issue_filter(
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        std::nullopt, std::nullopt, std::nullopt, std::nullopt,
+        "Alice"
+    );
+    EXPECT_TRUE(filter["creator"]["displayName"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["creator"]["displayName"]["eqIgnoreCase"], "Alice");
+}
+
+TEST(FilterBuilder, ProjectStatusFilterUsesEqIgnoreCase) {
+    auto filter = build_project_filter("started", std::nullopt, std::nullopt);
+    EXPECT_TRUE(filter["status"]["name"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["status"]["name"]["eqIgnoreCase"], "started");
+}
+
+TEST(FilterBuilder, ProjectLeadFilterUsesEqIgnoreCase) {
+    auto filter = build_project_filter(std::nullopt, "Bob", std::nullopt);
+    EXPECT_TRUE(filter["lead"]["displayName"].contains("eqIgnoreCase"));
+    EXPECT_EQ(filter["lead"]["displayName"]["eqIgnoreCase"], "Bob");
+}

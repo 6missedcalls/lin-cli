@@ -82,14 +82,20 @@ json build_issue_filter(
     }
 
     if (assignee.has_value()) {
-        clauses.push_back(json{
-            {"assignee", {{"displayName", {{"eqCaseInsensitive", assignee.value()}}}}}
-        });
+        if (assignee.value() == "@me") {
+            clauses.push_back(json{
+                {"assignee", {{"isMe", {{"eq", true}}}}}
+            });
+        } else {
+            clauses.push_back(json{
+                {"assignee", {{"displayName", {{"eqIgnoreCase", assignee.value()}}}}}
+            });
+        }
     }
 
     if (state.has_value()) {
         clauses.push_back(json{
-            {"state", {{"name", {{"eqCaseInsensitive", state.value()}}}}}
+            {"state", {{"name", {{"eqIgnoreCase", state.value()}}}}}
         });
     }
 
@@ -110,13 +116,13 @@ json build_issue_filter(
 
     if (label.has_value()) {
         clauses.push_back(json{
-            {"labels", {{"name", {{"eqCaseInsensitive", label.value()}}}}}
+            {"labels", {{"name", {{"eqIgnoreCase", label.value()}}}}}
         });
     }
 
     if (project.has_value()) {
         clauses.push_back(json{
-            {"project", {{"name", {{"eqCaseInsensitive", project.value()}}}}}
+            {"project", {{"name", {{"eqIgnoreCase", project.value()}}}}}
         });
     }
 
@@ -133,7 +139,7 @@ json build_issue_filter(
 
     if (creator.has_value()) {
         clauses.push_back(json{
-            {"creator", {{"displayName", {{"eqCaseInsensitive", creator.value()}}}}}
+            {"creator", {{"displayName", {{"eqIgnoreCase", creator.value()}}}}}
         });
     }
 
@@ -149,13 +155,13 @@ json build_project_filter(
 
     if (status.has_value()) {
         clauses.push_back(json{
-            {"status", {{"name", {{"eqCaseInsensitive", status.value()}}}}}
+            {"status", {{"name", {{"eqIgnoreCase", status.value()}}}}}
         });
     }
 
     if (lead.has_value()) {
         clauses.push_back(json{
-            {"lead", {{"displayName", {{"eqCaseInsensitive", lead.value()}}}}}
+            {"lead", {{"displayName", {{"eqIgnoreCase", lead.value()}}}}}
         });
     }
 
