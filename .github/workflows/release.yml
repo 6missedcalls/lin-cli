@@ -35,7 +35,7 @@ jobs:
           path: dist/lin-darwin-arm64.tar.gz
 
   build-macos-x86_64:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +44,8 @@ jobs:
 
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64
           cmake --build build -j$(sysctl -n hw.ncpu)
 
       - name: Package
