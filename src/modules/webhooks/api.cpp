@@ -1,6 +1,7 @@
 #include "modules/webhooks/api.h"
 
 #include <string>
+#include <vector>
 
 #include "core/auth.h"
 #include "core/error.h"
@@ -124,12 +125,14 @@ Webhook get_webhook(const std::string& id) {
 
 Webhook create_webhook(
     const std::string& url,
+    const std::vector<std::string>& resource_types,
     const std::optional<std::string>& label,
     const std::optional<std::string>& team_id,
     const std::optional<bool>& enabled
 ) {
     json input = json::object();
     input["url"] = url;
+    input["resourceTypes"] = resource_types;
 
     if (label.has_value()) {
         input["label"] = label.value();

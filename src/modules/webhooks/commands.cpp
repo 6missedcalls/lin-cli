@@ -210,6 +210,7 @@ void webhooks_commands::register_commands(CLI::App& app) {
 
         struct CreateOpts {
             std::string url;
+            std::vector<std::string> resource_types;
             std::string label;
             std::string team;
             bool enabled = true;
@@ -217,6 +218,7 @@ void webhooks_commands::register_commands(CLI::App& app) {
         auto opts = std::make_shared<CreateOpts>();
 
         cmd->add_option("--url", opts->url, "Webhook URL")->required();
+        cmd->add_option("--resource-types,-r", opts->resource_types, "Resource types to subscribe to (e.g., Issue, Project, Comment)")->required();
         cmd->add_option("--label", opts->label, "Webhook label");
         cmd->add_option("--team", opts->team, "Team name, key, or ID");
         cmd->add_flag("--enabled,!--disabled", opts->enabled, "Enable or disable the webhook (default: enabled)");
@@ -232,6 +234,7 @@ void webhooks_commands::register_commands(CLI::App& app) {
 
                 auto webhook = webhooks_api::create_webhook(
                     opts->url,
+                    opts->resource_types,
                     label_opt,
                     team_opt,
                     opts->enabled

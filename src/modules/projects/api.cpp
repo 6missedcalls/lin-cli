@@ -99,7 +99,7 @@ mutation ProjectDelete($id: String!) {
 )gql";
 
 static const std::string PROJECT_MILESTONES_QUERY = R"gql(
-query ProjectMilestones($projectId: String!, $first: Int) {
+query ProjectMilestones($projectId: ID!, $first: Int) {
     projectMilestones(filter: { project: { id: { eq: $projectId } } }, first: $first) {
         nodes {
             id name createdAt updatedAt description
@@ -142,7 +142,7 @@ mutation ProjectMilestoneDelete($id: String!) {
 )gql";
 
 static const std::string PROJECT_UPDATES_QUERY = R"gql(
-query ProjectUpdates($projectId: String!, $first: Int) {
+query ProjectUpdates($projectId: ID!, $first: Int) {
     projectUpdates(filter: { project: { id: { eq: $projectId } } }, first: $first) {
         nodes {
             id body url slugId createdAt updatedAt health diffMarkdown

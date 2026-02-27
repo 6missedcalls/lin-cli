@@ -87,10 +87,20 @@ void render_organization_detail(const Organization& org) {
 void render_rate_limit_detail(const RateLimitStatus& status) {
     if (get_output_format() == OutputFormat::Json) {
         json j;
-        j["requestsRemaining"] = status.requests_remaining;
-        j["requestsLimit"] = status.requests_limit;
-        j["resetAt"] = status.reset_at;
-        j["resetAtFormatted"] = format_unix_timestamp(status.reset_at);
+        j["kind"] = status.kind;
+        j["identifier"] = status.identifier.has_value() ? json(status.identifier.value()) : json(nullptr);
+        json limits_arr = json::array();
+        for (const auto& limit : status.limits) {
+            json lj;
+            lj["type"] = limit.type;
+            lj["allowedAmount"] = limit.allowed_amount;
+            lj["period"] = limit.period;
+            lj["remainingAmount"] = limit.remaining_amount;
+            lj["reset"] = limit.reset;
+            lj["resetFormatted"] = format_unix_timestamp(limit.reset);
+            limits_arr.push_back(lj);
+        }
+        j["limits"] = limits_arr;
         output_json(j);
         return;
     }
@@ -98,32 +108,47 @@ void render_rate_limit_detail(const RateLimitStatus& status) {
     DetailRenderer detail;
     detail.add_section("API Rate Limit");
 
-    std::string remaining_str = std::to_string(status.requests_remaining)
-        + " / " + std::to_string(status.requests_limit);
-
-    // Color the remaining count: red if low, yellow if moderate, green if healthy
-    std::string remaining_colored;
-    if (status.requests_limit > 0) {
-        double ratio = static_cast<double>(status.requests_remaining) / status.requests_limit;
-        if (ratio < 0.1) {
-            remaining_colored = color::red(remaining_str);
-        } else if (ratio < 0.3) {
-            remaining_colored = color::yellow(remaining_str);
-        } else {
-            remaining_colored = color::green(remaining_str);
-        }
-    } else {
-        remaining_colored = remaining_str;
-    }
-
-    detail.add_field("Remaining", remaining_colored);
-
-    std::string reset_str = format_unix_timestamp(status.reset_at);
-    if (!reset_str.empty()) {
-        detail.add_field("Resets At", reset_str);
+    detail.add_field("Kind", status.kind);
+    if (status.identifier.has_value()) {
+        detail.add_field("Identifier", status.identifier.value());
     }
 
     detail.render(std::cout);
+
+    if (!status.limits.empty()) {
+        TableRenderer table({
+            TableColumn{"Type"},
+            TableColumn{"Remaining"},
+            TableColumn{"Allowed"},
+            TableColumn{"Period (s)"},
+            TableColumn{"Resets At", 4, 25}
+        });
+        for (const auto& limit : status.limits) {
+            std::string remaining_str = std::to_string(static_cast<long long>(limit.remaining_amount));
+            std::string allowed_str = std::to_string(static_cast<long long>(limit.allowed_amount));
+
+            // Color remaining: red if low, yellow if moderate, green if healthy
+            std::string remaining_colored;
+            if (limit.allowed_amount > 0) {
+                double ratio = limit.remaining_amount / limit.allowed_amount;
+                if (ratio < 0.1) {
+                    remaining_colored = color::red(remaining_str);
+                } else if (ratio < 0.3) {
+                    remaining_colored = color::yellow(remaining_str);
+                } else {
+                    remaining_colored = color::green(remaining_str);
+                }
+            } else {
+                remaining_colored = remaining_str;
+            }
+
+            std::string period_str = std::to_string(static_cast<long long>(limit.period));
+            std::string reset_str = format_unix_timestamp(limit.reset);
+
+            table.add_row({limit.type, remaining_colored, allowed_str, period_str, reset_str});
+        }
+        table.render(std::cout);
+    }
 }
 
 }  // namespace

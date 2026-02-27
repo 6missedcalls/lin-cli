@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -23,10 +24,18 @@ struct Organization {
     std::optional<std::string> subscription_type;
 };
 
+struct RateLimitResult {
+    std::string type;
+    double allowed_amount = 0;
+    double period = 0;
+    double remaining_amount = 0;
+    double reset = 0;
+};
+
 struct RateLimitStatus {
-    int requests_remaining = 0;
-    int requests_limit = 0;
-    double reset_at = 0;  // Unix timestamp
+    std::string kind;
+    std::optional<std::string> identifier;
+    std::vector<RateLimitResult> limits;
 };
 
 // --- from_json implementations (inline) ---
@@ -74,17 +83,24 @@ inline void from_json(const json& j, Organization& o) {
     }
 }
 
-inline void from_json(const json& j, RateLimitStatus& r) {
-    auto safe_int = [&](const char* key, int def = 0) -> int {
-        if (j.contains(key) && !j[key].is_null()) return j[key].get<int>();
-        return def;
-    };
-    auto safe_double = [&](const char* key, double def = 0.0) -> double {
-        if (j.contains(key) && !j[key].is_null()) return j[key].get<double>();
-        return def;
-    };
+inline void from_json(const json& j, RateLimitResult& r) {
+    r.type = j.value("type", "");
+    r.allowed_amount = j.value("allowedAmount", 0.0);
+    r.period = j.value("period", 0.0);
+    r.remaining_amount = j.value("remainingAmount", 0.0);
+    r.reset = j.value("reset", 0.0);
+}
 
-    r.requests_remaining = safe_int("requestsRemaining");
-    r.requests_limit = safe_int("requestsLimit");
-    r.reset_at = safe_double("resetAt");
+inline void from_json(const json& j, RateLimitStatus& r) {
+    r.kind = j.value("kind", "");
+    if (j.contains("identifier") && !j["identifier"].is_null()) {
+        r.identifier = j["identifier"].get<std::string>();
+    }
+    if (j.contains("limits") && j["limits"].is_array()) {
+        for (const auto& item : j["limits"]) {
+            RateLimitResult limit;
+            from_json(item, limit);
+            r.limits.push_back(limit);
+        }
+    }
 }

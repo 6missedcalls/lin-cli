@@ -28,7 +28,8 @@ query Organization {
 static const std::string RATE_LIMIT_QUERY = R"gql(
 query RateLimitStatus {
     rateLimitStatus {
-        requestsRemaining requestsLimit resetAt
+        kind identifier
+        limits { type allowedAmount period remainingAmount reset }
     }
 }
 )gql";

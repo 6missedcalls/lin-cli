@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "core/types.h"
 #include "modules/webhooks/model.h"
@@ -20,6 +21,7 @@ Webhook get_webhook(const std::string& id);
 // Create a new webhook
 Webhook create_webhook(
     const std::string& url,
+    const std::vector<std::string>& resource_types,
     const std::optional<std::string>& label = std::nullopt,
     const std::optional<std::string>& team_id = std::nullopt,
     const std::optional<bool>& enabled = std::nullopt

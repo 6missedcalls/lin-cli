@@ -1,5 +1,6 @@
 #include "modules/notifications/api.h"
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -63,8 +64,8 @@ mutation NotificationUpdate($id: String!, $input: NotificationUpdateInput!) {
 )gql";
 
 static const std::string NOTIFICATION_MARK_READ_ALL_MUTATION = R"gql(
-mutation NotificationMarkReadAll {
-    notificationMarkReadAll { success }
+mutation NotificationMarkReadAll($readAt: DateTime!, $input: NotificationEntityInput!) {
+    notificationMarkReadAll(readAt: $readAt, input: $input) { success }
 }
 )gql";
 
@@ -133,19 +134,20 @@ Connection<Notification> list_notifications(
         variables["after"] = after.value();
     }
 
-    if (unread_only) {
-        // Filter for notifications where readAt is null (unread)
-        json filter = json::object();
-        json read_at_filter = json::object();
-        read_at_filter["null"] = true;
-        filter["readAt"] = read_at_filter;
-        variables["filter"] = filter;
-    }
-
     auto data = execute_graphql(NOTIFICATIONS_LIST_QUERY, variables);
 
     Connection<Notification> result;
     from_json(data.at("notifications"), result);
+
+    if (unread_only) {
+        // NotificationFilter has no readAt field — filter client-side
+        result.nodes.erase(
+            std::remove_if(result.nodes.begin(), result.nodes.end(),
+                [](const Notification& n) { return n.read_at.has_value(); }),
+            result.nodes.end()
+        );
+    }
+
     return result;
 }
 
@@ -161,22 +163,23 @@ Notification get_notification(const std::string& id) {
 }
 
 int get_unread_count() {
-    // Fetch unread notifications and count the returned nodes.
+    // Fetch notifications and count unread ones client-side.
+    // NotificationFilter has no readAt field so filtering must be done locally.
     // Use a generous page size to get an accurate count for most users.
     json variables = json::object();
     variables["first"] = 250;
-
-    json filter = json::object();
-    json read_at_filter = json::object();
-    read_at_filter["null"] = true;
-    filter["readAt"] = read_at_filter;
-    variables["filter"] = filter;
 
     auto data = execute_graphql(NOTIFICATIONS_LIST_QUERY, variables);
 
     const auto& conn = data.at("notifications");
     if (conn.contains("nodes") && conn["nodes"].is_array()) {
-        return static_cast<int>(conn["nodes"].size());
+        int count = 0;
+        for (const auto& node : conn["nodes"]) {
+            if (!node.contains("readAt") || node["readAt"].is_null()) {
+                ++count;
+            }
+        }
+        return count;
     }
     return 0;
 }
@@ -198,7 +201,11 @@ void mark_read(const std::string& id) {
 }
 
 void mark_all_read() {
-    auto data = execute_graphql(NOTIFICATION_MARK_READ_ALL_MUTATION, json::object());
+    json variables = json::object();
+    variables["readAt"] = current_iso8601_utc();
+    variables["input"] = json::object();
+
+    auto data = execute_graphql(NOTIFICATION_MARK_READ_ALL_MUTATION, variables);
 
     bool success = data.at("notificationMarkReadAll").at("success").get<bool>();
     if (!success) {

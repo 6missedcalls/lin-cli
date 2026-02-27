@@ -41,17 +41,30 @@ TEST(OrganizationModel, ParsesOrganization) {
 
 TEST(OrganizationModel, ParsesRateLimitStatus) {
     auto j = json::parse(R"({
-        "requestsRemaining": 1450,
-        "requestsLimit": 1500,
-        "resetAt": 1740960000.0
+        "kind": "requestCount",
+        "identifier": "my-app",
+        "limits": [
+            {
+                "type": "api",
+                "allowedAmount": 1500,
+                "period": 3600,
+                "remainingAmount": 1450,
+                "reset": 1740960000.0
+            }
+        ]
     })");
 
     RateLimitStatus status;
     from_json(j, status);
 
-    EXPECT_EQ(status.requests_remaining, 1450);
-    EXPECT_EQ(status.requests_limit, 1500);
-    EXPECT_DOUBLE_EQ(status.reset_at, 1740960000.0);
+    EXPECT_EQ(status.kind, "requestCount");
+    EXPECT_EQ(status.identifier, "my-app");
+    ASSERT_EQ(status.limits.size(), 1u);
+    EXPECT_EQ(status.limits[0].type, "api");
+    EXPECT_DOUBLE_EQ(status.limits[0].allowed_amount, 1500.0);
+    EXPECT_DOUBLE_EQ(status.limits[0].period, 3600.0);
+    EXPECT_DOUBLE_EQ(status.limits[0].remaining_amount, 1450.0);
+    EXPECT_DOUBLE_EQ(status.limits[0].reset, 1740960000.0);
 }
 
 TEST(OrganizationModel, HandlesNullFields) {
@@ -114,17 +127,49 @@ TEST(OrganizationModel, ParsesOrganizationWithSamlEnabled) {
     EXPECT_EQ(org.user_count, 500);
 }
 
-TEST(RateLimitModel, HandlesZeroValues) {
+TEST(RateLimitModel, HandlesEmptyLimits) {
     auto j = json::parse(R"({
-        "requestsRemaining": 0,
-        "requestsLimit": 0,
-        "resetAt": 0.0
+        "kind": "requestCount",
+        "identifier": null,
+        "limits": []
     })");
 
     RateLimitStatus status;
     from_json(j, status);
 
-    EXPECT_EQ(status.requests_remaining, 0);
-    EXPECT_EQ(status.requests_limit, 0);
-    EXPECT_DOUBLE_EQ(status.reset_at, 0.0);
+    EXPECT_EQ(status.kind, "requestCount");
+    EXPECT_EQ(status.identifier, std::nullopt);
+    EXPECT_EQ(status.limits.size(), 0u);
+}
+
+TEST(RateLimitModel, ParsesMultipleLimits) {
+    auto j = json::parse(R"({
+        "kind": "requestCount",
+        "identifier": null,
+        "limits": [
+            {
+                "type": "api",
+                "allowedAmount": 1500,
+                "period": 3600,
+                "remainingAmount": 0,
+                "reset": 0.0
+            },
+            {
+                "type": "mutation",
+                "allowedAmount": 500,
+                "period": 60,
+                "remainingAmount": 500,
+                "reset": 1740960060.0
+            }
+        ]
+    })");
+
+    RateLimitStatus status;
+    from_json(j, status);
+
+    ASSERT_EQ(status.limits.size(), 2u);
+    EXPECT_DOUBLE_EQ(status.limits[0].remaining_amount, 0.0);
+    EXPECT_DOUBLE_EQ(status.limits[0].allowed_amount, 1500.0);
+    EXPECT_EQ(status.limits[1].type, "mutation");
+    EXPECT_DOUBLE_EQ(status.limits[1].period, 60.0);
 }

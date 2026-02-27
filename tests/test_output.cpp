@@ -121,14 +121,14 @@ TEST(CLI, JsonFlagBeforeSubcommand) {
 
 TEST(CLI, BareSubcommandShowsHelp) {
     // `lin issues` with no subcommand should show help (exit 0), not error
-    int ret = std::system("./lin issues > /dev/null 2>&1");
+    int ret = std::system("./build/lin issues > /dev/null 2>&1");
     int exit_code = WEXITSTATUS(ret);
     EXPECT_EQ(exit_code, 0);
 }
 
 TEST(CLI, BareSubcommandOutputContainsUsage) {
     // The help output should contain subcommand list
-    FILE* pipe = popen("./lin issues 2>&1", "r");
+    FILE* pipe = popen("./build/lin issues 2>&1", "r");
     ASSERT_NE(pipe, nullptr);
 
     std::string output;
