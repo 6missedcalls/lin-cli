@@ -660,6 +660,10 @@ void issues_commands::register_commands(CLI::App& app) {
                 auto issue = issues_api::get_issue(opts->identifier);
 
                 std::string assignee_id = opts->assignee;
+                if (assignee_id == "@me") {
+                    opts->me = true;
+                    assignee_id.clear();
+                }
                 if (opts->me) {
                     auto viewer = issues_api::get_viewer();
                     assignee_id = viewer.id;
