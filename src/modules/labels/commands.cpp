@@ -189,7 +189,8 @@ void labels_commands::register_commands(CLI::App& app) {
 
         cmd->callback([id]() {
             try {
-                auto label = labels_api::get_label(*id);
+                auto resolved_id = labels_api::resolve_label_id(*id);
+                auto label = labels_api::get_label(resolved_id);
                 render_label_detail(label);
             } catch (const LinError& e) {
                 print_error(format_error(e));
