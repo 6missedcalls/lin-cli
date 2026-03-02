@@ -80,12 +80,9 @@ query TeamLabels($id: String!) {
 static const std::string TEAM_CYCLES_QUERY = R"gql(
 query TeamCycles($id: String!) {
     team(id: $id) {
-        cycles {
+        cycles(first: 50) {
             nodes {
                 id number name startsAt endsAt progress
-                inProgressIssueCountHistory
-                issues { nodes { id } }
-                completedIssues { nodes { id } }
             }
         }
     }
@@ -171,20 +168,6 @@ static TeamCycle parse_cycle(const json& j) {
 
     if (j.contains("progress") && !j["progress"].is_null()) {
         c.progress = j["progress"].get<double>();
-    }
-
-    // Count issues and completed issues from nodes arrays
-    if (j.contains("issues") && !j["issues"].is_null()) {
-        const auto& issues = j["issues"];
-        if (issues.contains("nodes") && issues["nodes"].is_array()) {
-            c.issue_count = static_cast<int>(issues["nodes"].size());
-        }
-    }
-    if (j.contains("completedIssues") && !j["completedIssues"].is_null()) {
-        const auto& completed = j["completedIssues"];
-        if (completed.contains("nodes") && completed["nodes"].is_array()) {
-            c.completed_issue_count = static_cast<int>(completed["nodes"].size());
-        }
     }
 
     return c;
