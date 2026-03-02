@@ -21,4 +21,7 @@ User get_user(const std::string& id);
 // Get the currently authenticated viewer (is_me = true)
 User get_viewer();
 
+// Resolve a name, displayName, email, or UUID to a user ID
+std::string resolve_user_id(const std::string& input);
+
 }  // namespace users_api
