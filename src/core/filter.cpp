@@ -77,7 +77,7 @@ json build_issue_filter(
 
     if (team.has_value()) {
         clauses.push_back(json{
-            {"team", {{"key", {{"eq", team.value()}}}}}
+            {"team", {{"id", {{"eq", team.value()}}}}}
         });
     }
 
@@ -182,7 +182,7 @@ json build_cycle_filter(
 
     if (team.has_value()) {
         clauses.push_back(json{
-            {"team", {{"key", {{"eq", team.value()}}}}}
+            {"team", {{"id", {{"eq", team.value()}}}}}
         });
     }
 

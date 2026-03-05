@@ -62,6 +62,9 @@ struct ProjectUpdateCreateInput {
 
 namespace projects_api {
 
+// Input serialization (testable)
+nlohmann::json build_create_json(const ProjectCreateInput& input);
+
 // Projects
 Connection<Project> list_projects(const ProjectListOptions& opts);
 Project get_project(const std::string& id);

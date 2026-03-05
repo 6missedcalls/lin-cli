@@ -462,7 +462,8 @@ void teams_commands::register_commands(CLI::App& app) {
 
         cmd->callback([team_id]() {
             try {
-                auto team = teams_api::get_team(*team_id);
+                auto resolved_id = teams_api::resolve_team_id(*team_id);
+                auto team = teams_api::get_team(resolved_id);
                 render_team_detail(team);
             } catch (const LinError& e) {
                 print_error(format_error(e));
@@ -480,9 +481,8 @@ void teams_commands::register_commands(CLI::App& app) {
 
         cmd->callback([team_id]() {
             try {
-                // Resolve key to ID if needed by fetching the team first
-                auto team = teams_api::get_team(*team_id);
-                auto members = teams_api::list_members(team.id);
+                auto resolved_id = teams_api::resolve_team_id(*team_id);
+                auto members = teams_api::list_members(resolved_id);
 
                 if (get_output_format() == OutputFormat::Json) {
                     render_members_json(members);
@@ -505,9 +505,8 @@ void teams_commands::register_commands(CLI::App& app) {
 
         cmd->callback([team_id]() {
             try {
-                // Resolve key to ID if needed
-                auto team = teams_api::get_team(*team_id);
-                auto connection = teams_api::list_workflow_states(team.id);
+                auto resolved_id = teams_api::resolve_team_id(*team_id);
+                auto connection = teams_api::list_workflow_states(resolved_id);
 
                 if (get_output_format() == OutputFormat::Json) {
                     render_states_json(connection.nodes);
@@ -530,8 +529,8 @@ void teams_commands::register_commands(CLI::App& app) {
 
         cmd->callback([team_id]() {
             try {
-                auto team = teams_api::get_team(*team_id);
-                auto labels = teams_api::list_labels(team.id);
+                auto resolved_id = teams_api::resolve_team_id(*team_id);
+                auto labels = teams_api::list_labels(resolved_id);
 
                 if (get_output_format() == OutputFormat::Json) {
                     render_labels_json(labels);
@@ -554,8 +553,8 @@ void teams_commands::register_commands(CLI::App& app) {
 
         cmd->callback([team_id]() {
             try {
-                auto team = teams_api::get_team(*team_id);
-                auto cycles = teams_api::list_cycles(team.id);
+                auto resolved_id = teams_api::resolve_team_id(*team_id);
+                auto cycles = teams_api::list_cycles(resolved_id);
 
                 if (get_output_format() == OutputFormat::Json) {
                     render_cycles_json(cycles);

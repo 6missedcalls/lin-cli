@@ -163,7 +163,7 @@ void comments_commands::register_commands(CLI::App& app) {
     comments->require_subcommand(1);
 
     // -----------------------------------------------------------------------
-    // comments list --issue IDENTIFIER
+    // comments list <issue>
     // -----------------------------------------------------------------------
     {
         auto* cmd = comments->add_subcommand("list", "List comments on an issue");
@@ -175,7 +175,7 @@ void comments_commands::register_commands(CLI::App& app) {
         };
         auto opts = std::make_shared<ListOpts>();
 
-        cmd->add_option("--issue", opts->issue, "Issue ID or identifier (e.g., ENG-123)")->required();
+        cmd->add_option("issue", opts->issue, "Issue ID or identifier (e.g., ENG-123)")->required();
         cmd->add_option("--limit,-n", opts->limit, "Maximum number of comments to return")->default_val(50);
         cmd->add_flag("--all,-a", opts->all, "Fetch all pages");
 
@@ -236,7 +236,7 @@ void comments_commands::register_commands(CLI::App& app) {
     }
 
     // -----------------------------------------------------------------------
-    // comments create --issue IDENTIFIER --body TEXT [--body-file PATH]
+    // comments create <issue> --body TEXT [--body-file PATH]
     // -----------------------------------------------------------------------
     {
         auto* cmd = comments->add_subcommand("create", "Create a comment on an issue");
@@ -249,7 +249,7 @@ void comments_commands::register_commands(CLI::App& app) {
         };
         auto opts = std::make_shared<CreateOpts>();
 
-        cmd->add_option("--issue", opts->issue, "Issue ID or identifier (e.g., ENG-123)")->required();
+        cmd->add_option("issue", opts->issue, "Issue ID or identifier (e.g., ENG-123)")->required();
         cmd->add_option("--body,-b", opts->body, "Comment body text (Markdown supported)");
         cmd->add_option("--body-file", opts->body_file, "Path to a file containing the comment body");
         cmd->add_option("--parent", opts->parent_id, "Parent comment ID (for replies)");

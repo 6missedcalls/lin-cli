@@ -14,6 +14,7 @@ set(TEST_SOURCES
     test_error_parsing.cpp
     test_graphql.cpp
     test_teams_parsing.cpp
+    test_teams_name_resolution.cpp
     test_labels_parsing.cpp
     test_users_parsing.cpp
     test_projects_parsing.cpp
@@ -31,6 +32,7 @@ set(TEST_SOURCES
     test_tui.cpp
     test_output.cpp
     test_cache.cpp
+    test_project_create_input.cpp
 )
 
 set(LIN_CORE_SOURCES

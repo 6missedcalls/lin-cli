@@ -237,7 +237,7 @@ Connection<Project> search_projects(const std::string& term, int limit) {
     return result;
 }
 
-Project create_project(const ProjectCreateInput& input) {
+json build_create_json(const ProjectCreateInput& input) {
     json project_input = json::object();
     project_input["name"] = input.name;
 
@@ -268,9 +268,14 @@ Project create_project(const ProjectCreateInput& input) {
     if (!input.member_ids.empty()) {
         project_input["memberIds"] = input.member_ids;
     }
-    if (!input.team_ids.empty()) {
-        project_input["teamIds"] = input.team_ids;
-    }
+    // teamIds is NON_NULL in the Linear API — always include it
+    project_input["teamIds"] = input.team_ids;
+
+    return project_input;
+}
+
+Project create_project(const ProjectCreateInput& input) {
+    json project_input = build_create_json(input);
 
     json variables = json::object();
     variables["input"] = project_input;

@@ -746,7 +746,8 @@ void issues_commands::register_commands(CLI::App& app) {
             cmd->callback([opts]() {
                 try {
                     auto issue = issues_api::get_issue(opts->identifier);
-                    issues_api::add_label(issue.id, opts->label);
+                    auto label_id = labels_api::resolve_label_id(opts->label);
+                    issues_api::add_label(issue.id, label_id);
                     print_success("Added label to " + issue.identifier);
                 } catch (const LinError& e) {
                     print_error(format_error(e));

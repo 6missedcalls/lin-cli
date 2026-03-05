@@ -1,5 +1,6 @@
 #include "modules/users/api.h"
 
+#include <algorithm>
 #include <string>
 
 #include "core/auth.h"
@@ -115,6 +116,41 @@ User get_viewer() {
     User user;
     from_json(data.at("viewer"), user);
     return user;
+}
+
+std::string resolve_user_id(const std::string& input) {
+    // If it looks like a UUID, try direct lookup first
+    if (input.size() == 36 && input[8] == '-') {
+        try {
+            get_user(input);
+            return input;
+        } catch (const LinError&) {
+            // Not a valid UUID — fall through to name/email search
+        }
+    }
+
+    // Search by name, displayName, or email (case-insensitive)
+    auto connection = list_users(250);
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    for (const auto& user : connection.nodes) {
+        auto lower = [](const std::string& s) {
+            std::string r = s;
+            std::transform(r.begin(), r.end(), r.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+            return r;
+        };
+        if (lower(user.name) == lower_input ||
+            lower(user.display_name) == lower_input ||
+            lower(user.email) == lower_input) {
+            return user.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "User not found: '" + input + "'. Use a name, email, or ID.");
 }
 
 }  // namespace users_api

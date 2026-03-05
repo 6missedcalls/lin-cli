@@ -11,12 +11,14 @@
 #include <nlohmann/json.hpp>
 
 #include "core/color.h"
+#include "core/config.h"
 #include "core/error.h"
 #include "core/filter.h"
 #include "core/output.h"
 #include "modules/projects/api.h"
 #include "modules/projects/model.h"
 #include "modules/teams/api.h"
+#include "modules/users/api.h"
 
 using json = nlohmann::json;
 
@@ -401,17 +403,41 @@ void projects_commands::register_commands(CLI::App& app) {
                 if (!opts->description.empty()) input.description = opts->description;
                 if (!opts->icon.empty())        input.icon = opts->icon;
                 if (!opts->color.empty())       input.color = opts->color;
-                if (!opts->lead.empty())        input.lead_id = opts->lead;
+                if (!opts->lead.empty())        input.lead_id = users_api::resolve_user_id(opts->lead);
                 if (!opts->status.empty())      input.status_id = opts->status;
                 if (!opts->start_date.empty())  input.start_date = opts->start_date;
                 if (!opts->target_date.empty()) input.target_date = opts->target_date;
+
+                // Resolve teams: explicit flag > config default > auto-detect single team
+                std::vector<std::string> team_inputs = opts->team_ids;
+                if (team_inputs.empty()) {
+                    const Config config = load_config();
+                    if (config.defaults.team.has_value() && !config.defaults.team->empty()) {
+                        team_inputs.push_back(*config.defaults.team);
+                    } else {
+                        auto teams = teams_api::list_teams(2);
+                        if (teams.nodes.size() == 1) {
+                            team_inputs.push_back(teams.nodes.front().id);
+                        } else {
+                            print_error("No team specified. Use --team or set a default with: lin config set defaults.team \"YourTeam\"");
+                            return;
+                        }
+                    }
+                }
                 std::vector<std::string> resolved_teams;
-                resolved_teams.reserve(opts->team_ids.size());
-                for (const auto& t : opts->team_ids) {
+                resolved_teams.reserve(team_inputs.size());
+                for (const auto& t : team_inputs) {
                     resolved_teams.push_back(teams_api::resolve_team_id(t));
                 }
                 input.team_ids = resolved_teams;
-                input.member_ids = opts->member_ids;
+
+                // Resolve member names/emails to IDs
+                std::vector<std::string> resolved_members;
+                resolved_members.reserve(opts->member_ids.size());
+                for (const auto& m : opts->member_ids) {
+                    resolved_members.push_back(users_api::resolve_user_id(m));
+                }
+                input.member_ids = resolved_members;
 
                 if (!opts->priority.empty()) {
                     auto prio = priority_name_to_number(opts->priority);
@@ -473,7 +499,7 @@ void projects_commands::register_commands(CLI::App& app) {
                 if (!opts->description.empty()) input.description = opts->description;
                 if (!opts->icon.empty())        input.icon = opts->icon;
                 if (!opts->color.empty())       input.color = opts->color;
-                if (!opts->lead.empty())        input.lead_id = opts->lead;
+                if (!opts->lead.empty())        input.lead_id = users_api::resolve_user_id(opts->lead);
                 if (!opts->status.empty())      input.status_id = opts->status;
                 if (!opts->start_date.empty())  input.start_date = opts->start_date;
                 if (!opts->target_date.empty()) input.target_date = opts->target_date;

@@ -202,9 +202,10 @@ void cycles_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
-                std::optional<std::string> team_opt = opts->team.empty()
-                    ? std::nullopt
-                    : std::make_optional(opts->team);
+                std::optional<std::string> team_opt;
+                if (!opts->team.empty()) {
+                    team_opt = teams_api::resolve_team_id(opts->team);
+                }
 
                 bool active_only = opts->active;
 
@@ -268,11 +269,12 @@ void cycles_commands::register_commands(CLI::App& app) {
     {
         auto* cmd = cycles->add_subcommand("show", "Show cycle details");
         auto id = std::make_shared<std::string>();
-        cmd->add_option("id", *id, "Cycle ID")->required();
+        cmd->add_option("id", *id, "Cycle number, name, or ID")->required();
 
         cmd->callback([id]() {
             try {
-                auto cycle = cycles_api::get_cycle(*id);
+                auto resolved = cycles_api::resolve_cycle_id(*id);
+                auto cycle = cycles_api::get_cycle(resolved);
                 render_cycle_detail(cycle);
             } catch (const LinError& e) {
                 print_error(format_error(e));
@@ -295,9 +297,10 @@ void cycles_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
-                std::optional<std::string> team_opt = opts->team.empty()
-                    ? std::nullopt
-                    : std::make_optional(opts->team);
+                std::optional<std::string> team_opt;
+                if (!opts->team.empty()) {
+                    team_opt = teams_api::resolve_team_id(opts->team);
+                }
 
                 json filter = build_cycle_filter(team_opt, true /* active_only */);
 
@@ -374,7 +377,7 @@ void cycles_commands::register_commands(CLI::App& app) {
         };
         auto opts = std::make_shared<UpdateOpts>();
 
-        cmd->add_option("id", opts->id, "Cycle ID")->required();
+        cmd->add_option("id", opts->id, "Cycle number, name, or ID")->required();
         cmd->add_option("--name", opts->name, "New cycle name");
         cmd->add_option("--starts-at", opts->starts_at, "New start date (YYYY-MM-DD or ISO 8601)");
         cmd->add_option("--ends-at", opts->ends_at, "New end date (YYYY-MM-DD or ISO 8601)");
@@ -382,6 +385,7 @@ void cycles_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
+                auto resolved_id = cycles_api::resolve_cycle_id(opts->id);
                 CycleUpdateInput input;
 
                 if (!opts->name.empty()) input.name = opts->name;
@@ -389,7 +393,7 @@ void cycles_commands::register_commands(CLI::App& app) {
                 if (!opts->starts_at.empty()) input.starts_at = opts->starts_at;
                 if (!opts->ends_at.empty()) input.ends_at = opts->ends_at;
 
-                auto cycle = cycles_api::update_cycle(opts->id, input);
+                auto cycle = cycles_api::update_cycle(resolved_id, input);
                 print_success("Updated cycle #" + std::to_string(static_cast<int>(cycle.number)));
                 render_cycle_detail(cycle);
             } catch (const LinError& e) {
@@ -404,11 +408,12 @@ void cycles_commands::register_commands(CLI::App& app) {
     {
         auto* cmd = cycles->add_subcommand("archive", "Archive a cycle");
         auto id = std::make_shared<std::string>();
-        cmd->add_option("id", *id, "Cycle ID")->required();
+        cmd->add_option("id", *id, "Cycle number, name, or ID")->required();
 
         cmd->callback([id]() {
             try {
-                cycles_api::archive_cycle(*id);
+                auto resolved = cycles_api::resolve_cycle_id(*id);
+                cycles_api::archive_cycle(resolved);
                 print_success("Archived cycle " + *id);
             } catch (const LinError& e) {
                 print_error(format_error(e));

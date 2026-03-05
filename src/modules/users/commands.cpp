@@ -225,7 +225,8 @@ void users_commands::register_commands(CLI::App& app) {
 
         cmd->callback([id]() {
             try {
-                auto user = users_api::get_user(*id);
+                auto resolved_id = users_api::resolve_user_id(*id);
+                auto user = users_api::get_user(resolved_id);
                 render_user_detail(user);
             } catch (const LinError& e) {
                 print_error(format_error(e));

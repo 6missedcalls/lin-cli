@@ -232,7 +232,8 @@ void views_commands::register_commands(CLI::App& app) {
 
         cmd->callback([id]() {
             try {
-                auto view = views_api::get_view(*id);
+                auto resolved_id = views_api::resolve_view_id(*id);
+                auto view = views_api::get_view(resolved_id);
                 render_view_detail(view);
             } catch (const LinError& e) {
                 print_error(format_error(e));
@@ -301,7 +302,8 @@ void views_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
-                auto view = views_api::get_view(opts->id);
+                auto resolved_id = views_api::resolve_view_id(opts->id);
+                auto view = views_api::get_view(resolved_id);
 
                 if (!opts->yes) {
                     std::cerr << "Are you sure you want to delete view \""

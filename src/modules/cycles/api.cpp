@@ -1,5 +1,6 @@
 #include "modules/cycles/api.h"
 
+#include <algorithm>
 #include <string>
 
 #include "core/auth.h"
@@ -131,6 +132,55 @@ Cycle get_cycle(const std::string& id) {
     Cycle cycle;
     from_json(data.at("cycle"), cycle);
     return cycle;
+}
+
+std::string resolve_cycle_id(const std::string& input) {
+    // Fast path: try direct UUID lookup
+    try {
+        auto cycle = get_cycle(input);
+        return cycle.id;
+    } catch (const LinError&) {
+        // Not a UUID — fall through
+    }
+
+    // Fetch all cycles and match by number or name
+    CycleListOptions opts;
+    opts.first = 250;
+    auto conn = list_cycles(opts);
+
+    // Try matching by number (e.g. "11" or "#11")
+    std::string num_str = input;
+    if (!num_str.empty() && num_str[0] == '#') {
+        num_str = num_str.substr(1);
+    }
+    try {
+        int target_num = std::stoi(num_str);
+        for (const auto& c : conn.nodes) {
+            if (static_cast<int>(c.number) == target_num) {
+                return c.id;
+            }
+        }
+    } catch (const std::exception&) {
+        // Not a number — try name match
+    }
+
+    // Case-insensitive name match
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char ch) { return std::tolower(ch); });
+
+    for (const auto& c : conn.nodes) {
+        if (!c.name.has_value()) continue;
+        std::string lower_name = c.name.value();
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char ch) { return std::tolower(ch); });
+        if (lower_name == lower_input) {
+            return c.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "Cycle not found: \"" + input + "\". Use a cycle number, name, or UUID.");
 }
 
 Cycle create_cycle(const CycleCreateInput& input) {

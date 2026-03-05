@@ -1,5 +1,6 @@
 #include "modules/views/api.h"
 
+#include <algorithm>
 #include <string>
 
 #include "core/auth.h"
@@ -154,6 +155,41 @@ CustomView create_view(
     CustomView view;
     from_json(data.at("customViewCreate").at("customView"), view);
     return view;
+}
+
+std::string resolve_view_id(const std::string& input) {
+    if (input.empty()) {
+        throw LinError(ErrorKind::Validation, "View ID or name cannot be empty");
+    }
+
+    // Fast path: try direct UUID lookup only if input looks like a UUID
+    if (input.size() == 36 && input[8] == '-') {
+        try {
+            auto view = get_view(input);
+            return view.id;
+        } catch (const LinError&) {
+            // Not a valid UUID — fall through to name match
+        }
+    }
+
+    // Fetch all views and match by name (case-insensitive)
+    auto conn = list_views(250);
+
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char ch) { return std::tolower(ch); });
+
+    for (const auto& v : conn.nodes) {
+        std::string lower_name = v.name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char ch) { return std::tolower(ch); });
+        if (lower_name == lower_input) {
+            return v.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "View not found: \"" + input + "\". Use a view name or UUID.");
 }
 
 void delete_view(const std::string& id) {
