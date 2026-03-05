@@ -596,53 +596,53 @@ void projects_commands::register_commands(CLI::App& app) {
     // -----------------------------------------------------------------------
     {
         auto* milestones_cmd = projects->add_subcommand("milestones", "Manage project milestones");
-        milestones_cmd->require_subcommand(0);
+        milestones_cmd->require_subcommand(1);
 
-        // Default behavior: list milestones for a project
+        // milestones list <project>
         {
+            auto* cmd = milestones_cmd->add_subcommand("list", "List milestones for a project");
             auto project_id = std::make_shared<std::string>();
-            milestones_cmd->add_option("project_id", *project_id, "Project ID")->required();
+            cmd->add_option("project", *project_id, "Project name or ID")->required();
 
-            milestones_cmd->callback([project_id, milestones_cmd]() {
-                if (milestones_cmd->get_subcommands().empty()) {
-                    try {
-                        auto connection = projects_api::list_milestones(*project_id);
-                        if (get_output_format() == OutputFormat::Json) {
-                            json arr = json::array();
-                            for (const auto& m : connection.nodes) {
-                                json j;
-                                j["id"] = m.id;
-                                j["name"] = m.name;
-                                j["status"] = m.status;
-                                j["targetDate"] = m.target_date.value_or("");
-                                j["progress"] = m.progress;
-                                j["description"] = m.description.value_or("");
-                                arr.push_back(j);
-                            }
-                            output_json(arr);
-                        } else {
-                            render_milestone_table(connection.nodes);
+            cmd->callback([project_id]() {
+                try {
+                    auto resolved = projects_api::resolve_project_id(*project_id);
+                    auto connection = projects_api::list_milestones(resolved);
+                    if (get_output_format() == OutputFormat::Json) {
+                        json arr = json::array();
+                        for (const auto& m : connection.nodes) {
+                            json j;
+                            j["id"] = m.id;
+                            j["name"] = m.name;
+                            j["status"] = m.status;
+                            j["targetDate"] = m.target_date.value_or("");
+                            j["progress"] = m.progress;
+                            j["description"] = m.description.value_or("");
+                            arr.push_back(j);
                         }
-                    } catch (const LinError& e) {
-                        print_error(format_error(e));
+                        output_json(arr);
+                    } else {
+                        render_milestone_table(connection.nodes);
                     }
+                } catch (const LinError& e) {
+                    print_error(format_error(e));
                 }
             });
         }
 
-        // milestones create
+        // milestones create <project>
         {
             auto* cmd = milestones_cmd->add_subcommand("create", "Create a milestone");
 
             struct CreateOpts {
-                std::string project_id;
+                std::string project;
                 std::string name;
                 std::string description;
                 std::string target_date;
             };
             auto opts = std::make_shared<CreateOpts>();
 
-            cmd->add_option("--project", opts->project_id, "Project name or ID")->required();
+            cmd->add_option("project", opts->project, "Project name or ID")->required();
             cmd->add_option("--name,-n", opts->name, "Milestone name")->required();
             cmd->add_option("--description,-d", opts->description, "Milestone description");
             cmd->add_option("--target-date", opts->target_date, "Target date (YYYY-MM-DD)");
@@ -650,7 +650,7 @@ void projects_commands::register_commands(CLI::App& app) {
             cmd->callback([opts]() {
                 try {
                     ProjectMilestoneCreateInput input;
-                    input.project_id = projects_api::resolve_project_id(opts->project_id);
+                    input.project_id = projects_api::resolve_project_id(opts->project);
                     input.name = opts->name;
 
                     if (!opts->description.empty()) input.description = opts->description;
@@ -739,59 +739,59 @@ void projects_commands::register_commands(CLI::App& app) {
     // -----------------------------------------------------------------------
     {
         auto* updates_cmd = projects->add_subcommand("updates", "Manage project updates");
-        updates_cmd->require_subcommand(0);
+        updates_cmd->require_subcommand(1);
 
-        // Default behavior: list updates for a project
+        // updates list <project>
         {
+            auto* cmd = updates_cmd->add_subcommand("list", "List updates for a project");
             auto project_id = std::make_shared<std::string>();
-            updates_cmd->add_option("project_id", *project_id, "Project ID")->required();
+            cmd->add_option("project", *project_id, "Project name or ID")->required();
 
-            updates_cmd->callback([project_id, updates_cmd]() {
-                if (updates_cmd->get_subcommands().empty()) {
-                    try {
-                        auto connection = projects_api::list_updates(*project_id);
-                        if (get_output_format() == OutputFormat::Json) {
-                            json arr = json::array();
-                            for (const auto& u : connection.nodes) {
-                                json j;
-                                j["id"] = u.id;
-                                j["body"] = u.body;
-                                j["health"] = u.health.value_or("");
-                                j["user"] = u.user_name.value_or("");
-                                j["createdAt"] = u.created_at;
-                                j["url"] = u.url;
-                                arr.push_back(j);
-                            }
-                            output_json(arr);
-                        } else {
-                            render_update_table(connection.nodes);
+            cmd->callback([project_id]() {
+                try {
+                    auto resolved = projects_api::resolve_project_id(*project_id);
+                    auto connection = projects_api::list_updates(resolved);
+                    if (get_output_format() == OutputFormat::Json) {
+                        json arr = json::array();
+                        for (const auto& u : connection.nodes) {
+                            json j;
+                            j["id"] = u.id;
+                            j["body"] = u.body;
+                            j["health"] = u.health.value_or("");
+                            j["user"] = u.user_name.value_or("");
+                            j["createdAt"] = u.created_at;
+                            j["url"] = u.url;
+                            arr.push_back(j);
                         }
-                    } catch (const LinError& e) {
-                        print_error(format_error(e));
+                        output_json(arr);
+                    } else {
+                        render_update_table(connection.nodes);
                     }
+                } catch (const LinError& e) {
+                    print_error(format_error(e));
                 }
             });
         }
 
-        // updates create <project_id>
+        // updates create <project>
         {
             auto* cmd = updates_cmd->add_subcommand("create", "Create a project update");
 
             struct CreateOpts {
-                std::string project_id;
+                std::string project;
                 std::string body;
                 std::string health;
             };
             auto opts = std::make_shared<CreateOpts>();
 
-            cmd->add_option("project_id", opts->project_id, "Project name or ID")->required();
+            cmd->add_option("project", opts->project, "Project name or ID")->required();
             cmd->add_option("--body,-b", opts->body, "Update body text")->required();
             cmd->add_option("--health", opts->health, "Health status (onTrack, atRisk, offTrack)");
 
             cmd->callback([opts]() {
                 try {
                     ProjectUpdateCreateInput input;
-                    input.project_id = projects_api::resolve_project_id(opts->project_id);
+                    input.project_id = projects_api::resolve_project_id(opts->project);
                     input.body = opts->body;
 
                     if (!opts->health.empty()) input.health = opts->health;
