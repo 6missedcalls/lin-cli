@@ -27,6 +27,10 @@ Thumbs.db
 *.key
 config.toml
 
+# Screenshots / demos
+demo-*.png
+.playwright-mcp/
+
 # AI / development tooling
 CLAUDE.md
 ARCHITECTURE.md

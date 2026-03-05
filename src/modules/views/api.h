@@ -29,4 +29,7 @@ CustomView create_view(
 // Delete a custom view by ID
 void delete_view(const std::string& id);
 
+// Resolve a view name or UUID to a view ID
+std::string resolve_view_id(const std::string& input);
+
 }  // namespace views_api

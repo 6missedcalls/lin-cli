@@ -268,6 +268,8 @@ void labels_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
+                auto resolved_id = labels_api::resolve_label_id(opts->id);
+
                 std::optional<std::string> name_opt = opts->name.empty()
                     ? std::nullopt
                     : std::make_optional(opts->name);
@@ -279,7 +281,7 @@ void labels_commands::register_commands(CLI::App& app) {
                     : std::make_optional(opts->description);
 
                 auto label = labels_api::update_label(
-                    opts->id,
+                    resolved_id,
                     name_opt,
                     color_opt,
                     desc_opt
@@ -310,7 +312,8 @@ void labels_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
-                auto label = labels_api::get_label(opts->id);
+                auto resolved_id = labels_api::resolve_label_id(opts->id);
+                auto label = labels_api::get_label(resolved_id);
 
                 if (!opts->yes) {
                     std::cerr << "Are you sure you want to delete label \""

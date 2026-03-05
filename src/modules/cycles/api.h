@@ -35,6 +35,10 @@ Connection<Cycle> list_cycles(const CycleListOptions& opts);
 // Get single cycle by ID
 Cycle get_cycle(const std::string& id);
 
+// Resolve cycle number, name, or UUID to a cycle ID.
+// Accepts: UUID (direct lookup), integer number (e.g. "11"), or name substring.
+std::string resolve_cycle_id(const std::string& input);
+
 // CRUD
 Cycle create_cycle(const CycleCreateInput& input);
 Cycle update_cycle(const std::string& id, const CycleUpdateInput& input);
