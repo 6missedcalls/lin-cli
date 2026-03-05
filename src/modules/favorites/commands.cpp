@@ -10,8 +10,13 @@
 
 #include "core/error.h"
 #include "core/output.h"
+#include "modules/cycles/api.h"
 #include "modules/favorites/api.h"
 #include "modules/favorites/model.h"
+#include "modules/issues/api.h"
+#include "modules/labels/api.h"
+#include "modules/projects/api.h"
+#include "modules/views/api.h"
 
 using json = nlohmann::json;
 
@@ -187,12 +192,12 @@ void favorites_commands::register_commands(CLI::App& app) {
         };
         auto opts = std::make_shared<AddOpts>();
 
-        cmd->add_option("--issue", opts->issue, "Issue ID to favorite");
-        cmd->add_option("--project", opts->project, "Project ID to favorite");
-        cmd->add_option("--cycle", opts->cycle, "Cycle ID to favorite");
-        cmd->add_option("--view", opts->view, "Custom view ID to favorite");
+        cmd->add_option("--issue", opts->issue, "Issue identifier (e.g. ENG-123) or ID to favorite");
+        cmd->add_option("--project", opts->project, "Project name or ID to favorite");
+        cmd->add_option("--cycle", opts->cycle, "Cycle name or ID to favorite");
+        cmd->add_option("--view", opts->view, "Custom view name or ID to favorite");
         cmd->add_option("--document", opts->document, "Document ID to favorite");
-        cmd->add_option("--label", opts->label, "Label ID to favorite");
+        cmd->add_option("--label", opts->label, "Label name or ID to favorite");
 
         cmd->callback([opts]() {
             try {
@@ -215,12 +220,12 @@ void favorites_commands::register_commands(CLI::App& app) {
                 }
 
                 FavoriteCreateInput input;
-                if (!opts->issue.empty()) input.issue_id = opts->issue;
-                if (!opts->project.empty()) input.project_id = opts->project;
-                if (!opts->cycle.empty()) input.cycle_id = opts->cycle;
-                if (!opts->view.empty()) input.custom_view_id = opts->view;
+                if (!opts->issue.empty()) input.issue_id = issues_api::get_issue(opts->issue).id;
+                if (!opts->project.empty()) input.project_id = projects_api::resolve_project_id(opts->project);
+                if (!opts->cycle.empty()) input.cycle_id = cycles_api::resolve_cycle_id(opts->cycle);
+                if (!opts->view.empty()) input.custom_view_id = views_api::resolve_view_id(opts->view);
                 if (!opts->document.empty()) input.document_id = opts->document;
-                if (!opts->label.empty()) input.label_id = opts->label;
+                if (!opts->label.empty()) input.label_id = labels_api::resolve_label_id(opts->label);
 
                 auto fav = favorites_api::create_favorite(input);
                 print_success("Added favorite " + fav.id);

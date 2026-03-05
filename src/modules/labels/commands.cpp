@@ -153,7 +153,7 @@ void labels_commands::register_commands(CLI::App& app) {
             try {
                 std::optional<std::string> team_opt = opts->team.empty()
                     ? std::nullopt
-                    : std::make_optional(opts->team);
+                    : std::make_optional(teams_api::resolve_team_id(opts->team));
 
                 auto connection = labels_api::list_labels(opts->limit, std::nullopt, team_opt);
 
@@ -229,7 +229,7 @@ void labels_commands::register_commands(CLI::App& app) {
                     : std::make_optional(opts->description);
                 std::optional<std::string> parent_opt = opts->parent.empty()
                     ? std::nullopt
-                    : std::make_optional(opts->parent);
+                    : std::make_optional(labels_api::resolve_label_id(opts->parent));
 
                 auto label = labels_api::create_label(
                     opts->name,

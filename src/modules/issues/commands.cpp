@@ -16,8 +16,11 @@
 #include "core/paginator.h"
 #include "modules/issues/api.h"
 #include "modules/issues/model.h"
+#include "modules/cycles/api.h"
 #include "modules/labels/api.h"
+#include "modules/projects/api.h"
 #include "modules/teams/api.h"
+#include "modules/users/api.h"
 
 using json = nlohmann::json;
 
@@ -247,7 +250,12 @@ void issues_commands::register_commands(CLI::App& app) {
 
         cmd->callback([opts]() {
             try {
-                std::optional<std::string> team_opt = opts->team.empty() ? std::nullopt : std::make_optional(opts->team);
+                // Resolve team name to ID
+                std::optional<std::string> team_opt;
+                if (!opts->team.empty()) {
+                    team_opt = teams_api::resolve_team_id(opts->team);
+                }
+
                 std::optional<std::string> assignee_opt = opts->assignee.empty() ? std::nullopt : std::make_optional(opts->assignee);
                 std::optional<std::string> state_opt = opts->state.empty() ? std::nullopt : std::make_optional(opts->state);
                 std::optional<std::string> state_type_opt = opts->state_type.empty() ? std::nullopt : std::make_optional(opts->state_type);
@@ -374,12 +382,12 @@ void issues_commands::register_commands(CLI::App& app) {
         cmd->add_option("--title,-t", opts->title, "Issue title")->required();
         cmd->add_option("--team", opts->team, "Team name, key, or ID (uses default if set)");
         cmd->add_option("--description,-d", opts->description, "Issue description");
-        cmd->add_option("--assignee", opts->assignee, "Assignee ID");
+        cmd->add_option("--assignee", opts->assignee, "Assignee name or ID");
         cmd->add_option("--priority,-p", opts->priority, "Priority (none, urgent, high, normal, low)");
-        cmd->add_option("--state", opts->state, "State ID");
+        cmd->add_option("--state", opts->state, "State name or ID");
         cmd->add_option("--label,-l", opts->labels, "Label name or ID (repeatable)");
-        cmd->add_option("--project", opts->project, "Project ID");
-        cmd->add_option("--cycle", opts->cycle, "Cycle ID");
+        cmd->add_option("--project", opts->project, "Project name or ID");
+        cmd->add_option("--cycle", opts->cycle, "Cycle name, number, or ID");
         cmd->add_option("--parent", opts->parent, "Parent issue ID");
         cmd->add_option("--estimate", opts->estimate, "Point estimate");
         cmd->add_option("--due-date", opts->due_date, "Due date (YYYY-MM-DD)");
@@ -409,12 +417,12 @@ void issues_commands::register_commands(CLI::App& app) {
                 input.team_id = teams_api::resolve_team_id(team_input);
 
                 if (!opts->description.empty()) input.description = opts->description;
-                if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
+                if (!opts->assignee.empty()) input.assignee_id = users_api::resolve_user_id(opts->assignee);
                 if (!opts->state.empty()) {
                     input.state_id = teams_api::resolve_state_id(input.team_id, opts->state);
                 }
-                if (!opts->project.empty()) input.project_id = opts->project;
-                if (!opts->cycle.empty()) input.cycle_id = opts->cycle;
+                if (!opts->project.empty()) input.project_id = projects_api::resolve_project_id(opts->project);
+                if (!opts->cycle.empty()) input.cycle_id = cycles_api::resolve_cycle_id(opts->cycle);
                 if (!opts->parent.empty()) input.parent_id = opts->parent;
                 if (!opts->due_date.empty()) input.due_date = opts->due_date;
                 if (opts->estimate >= 0) input.estimate = opts->estimate;
@@ -470,11 +478,11 @@ void issues_commands::register_commands(CLI::App& app) {
         cmd->add_option("identifier", opts->identifier, "Issue identifier (e.g., ENG-123)")->required();
         cmd->add_option("--title,-t", opts->title, "New title");
         cmd->add_option("--description,-d", opts->description, "New description");
-        cmd->add_option("--assignee", opts->assignee, "New assignee ID");
+        cmd->add_option("--assignee", opts->assignee, "New assignee name or ID");
         cmd->add_option("--priority,-p", opts->priority, "New priority (none, urgent, high, normal, low)");
-        cmd->add_option("--state", opts->state, "New state ID");
-        cmd->add_option("--project", opts->project, "New project ID");
-        cmd->add_option("--cycle", opts->cycle, "New cycle ID");
+        cmd->add_option("--state", opts->state, "New state name or ID");
+        cmd->add_option("--project", opts->project, "New project name or ID");
+        cmd->add_option("--cycle", opts->cycle, "New cycle name, number, or ID");
         cmd->add_option("--parent", opts->parent, "New parent issue ID");
         cmd->add_option("--estimate", opts->estimate, "New point estimate");
         cmd->add_option("--due-date", opts->due_date, "New due date (YYYY-MM-DD)");
@@ -486,7 +494,7 @@ void issues_commands::register_commands(CLI::App& app) {
                 IssueUpdateInput input;
                 if (!opts->title.empty()) input.title = opts->title;
                 if (!opts->description.empty()) input.description = opts->description;
-                if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
+                if (!opts->assignee.empty()) input.assignee_id = users_api::resolve_user_id(opts->assignee);
                 if (!opts->state.empty()) {
                     std::string team_id = issue.team_id.value_or("");
                     if (team_id.empty()) {
@@ -495,8 +503,8 @@ void issues_commands::register_commands(CLI::App& app) {
                     }
                     input.state_id = teams_api::resolve_state_id(team_id, opts->state);
                 }
-                if (!opts->project.empty()) input.project_id = opts->project;
-                if (!opts->cycle.empty()) input.cycle_id = opts->cycle;
+                if (!opts->project.empty()) input.project_id = projects_api::resolve_project_id(opts->project);
+                if (!opts->cycle.empty()) input.cycle_id = cycles_api::resolve_cycle_id(opts->cycle);
                 if (!opts->parent.empty()) input.parent_id = opts->parent;
                 if (!opts->due_date.empty()) input.due_date = opts->due_date;
                 if (opts->estimate >= 0) input.estimate = opts->estimate;
@@ -615,13 +623,13 @@ void issues_commands::register_commands(CLI::App& app) {
         auto opts = std::make_shared<SearchOpts>();
 
         cmd->add_option("query", opts->query, "Search query text")->required();
-        cmd->add_option("--team", opts->team, "Filter by team ID");
+        cmd->add_option("--team", opts->team, "Filter by team name, key, or ID");
         cmd->add_flag("--include-comments", opts->include_comments, "Include comment text in search");
         cmd->add_option("--limit,-n", opts->limit, "Maximum results")->default_val(20);
 
         cmd->callback([opts]() {
             try {
-                std::optional<std::string> team_opt = opts->team.empty() ? std::nullopt : std::make_optional(opts->team);
+                std::optional<std::string> team_opt = opts->team.empty() ? std::nullopt : std::make_optional(teams_api::resolve_team_id(opts->team));
 
                 auto connection = issues_api::search_issues(
                     opts->query, team_opt, opts->include_comments, opts->limit
@@ -962,11 +970,11 @@ void issues_commands::register_commands(CLI::App& app) {
             auto opts = std::make_shared<BulkUpdateOpts>();
 
             cmd->add_option("identifiers", opts->identifiers, "Issue identifiers (e.g., ENG-123 ENG-456)")->required()->expected(-1);
-            cmd->add_option("--state", opts->state, "New state ID");
-            cmd->add_option("--assignee", opts->assignee, "New assignee ID");
+            cmd->add_option("--state", opts->state, "New state name or ID");
+            cmd->add_option("--assignee", opts->assignee, "New assignee name or ID");
             cmd->add_option("--priority", opts->priority, "New priority (none, urgent, high, normal, low)");
-            cmd->add_option("--label", opts->label, "Label ID to add");
-            cmd->add_option("--project", opts->project, "New project ID");
+            cmd->add_option("--label", opts->label, "Label name or ID to add");
+            cmd->add_option("--project", opts->project, "New project name or ID");
 
             cmd->callback([opts]() {
                 try {
@@ -990,8 +998,8 @@ void issues_commands::register_commands(CLI::App& app) {
                         }
                         input.state_id = teams_api::resolve_state_id(first_team_id, opts->state);
                     }
-                    if (!opts->assignee.empty()) input.assignee_id = opts->assignee;
-                    if (!opts->project.empty()) input.project_id = opts->project;
+                    if (!opts->assignee.empty()) input.assignee_id = users_api::resolve_user_id(opts->assignee);
+                    if (!opts->project.empty()) input.project_id = projects_api::resolve_project_id(opts->project);
 
                     if (!opts->priority.empty()) {
                         auto prio = priority_name_to_number(opts->priority);

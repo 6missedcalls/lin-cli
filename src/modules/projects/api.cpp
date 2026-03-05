@@ -1,5 +1,6 @@
 #include "modules/projects/api.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -195,6 +196,43 @@ static json execute_graphql(const std::string& query, const json& variables) {
 // ---------------------------------------------------------------------------
 
 namespace projects_api {
+
+std::string resolve_project_id(const std::string& input) {
+    if (input.empty()) {
+        throw LinError(ErrorKind::Validation, "Project ID or name cannot be empty");
+    }
+
+    // Fast path: try direct UUID lookup only if input looks like a UUID
+    if (input.size() == 36 && input[8] == '-') {
+        try {
+            auto project = get_project(input);
+            return project.id;
+        } catch (const LinError&) {
+            // Not a valid UUID — fall through to name match
+        }
+    }
+
+    // Fetch projects and match by name (case-insensitive)
+    ProjectListOptions opts;
+    opts.first = 250;
+    auto conn = list_projects(opts);
+
+    std::string lower_input = input;
+    std::transform(lower_input.begin(), lower_input.end(), lower_input.begin(),
+        [](unsigned char ch) { return std::tolower(ch); });
+
+    for (const auto& p : conn.nodes) {
+        std::string lower_name = p.name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+            [](unsigned char ch) { return std::tolower(ch); });
+        if (lower_name == lower_input) {
+            return p.id;
+        }
+    }
+
+    throw LinError(ErrorKind::NotFound,
+        "Project not found: \"" + input + "\". Use a project name or UUID.");
+}
 
 Connection<Project> list_projects(const ProjectListOptions& opts) {
     json variables = json::object();

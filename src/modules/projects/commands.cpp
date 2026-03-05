@@ -642,7 +642,7 @@ void projects_commands::register_commands(CLI::App& app) {
             };
             auto opts = std::make_shared<CreateOpts>();
 
-            cmd->add_option("--project", opts->project_id, "Project ID")->required();
+            cmd->add_option("--project", opts->project_id, "Project name or ID")->required();
             cmd->add_option("--name,-n", opts->name, "Milestone name")->required();
             cmd->add_option("--description,-d", opts->description, "Milestone description");
             cmd->add_option("--target-date", opts->target_date, "Target date (YYYY-MM-DD)");
@@ -650,7 +650,7 @@ void projects_commands::register_commands(CLI::App& app) {
             cmd->callback([opts]() {
                 try {
                     ProjectMilestoneCreateInput input;
-                    input.project_id = opts->project_id;
+                    input.project_id = projects_api::resolve_project_id(opts->project_id);
                     input.name = opts->name;
 
                     if (!opts->description.empty()) input.description = opts->description;
@@ -784,14 +784,14 @@ void projects_commands::register_commands(CLI::App& app) {
             };
             auto opts = std::make_shared<CreateOpts>();
 
-            cmd->add_option("project_id", opts->project_id, "Project ID")->required();
+            cmd->add_option("project_id", opts->project_id, "Project name or ID")->required();
             cmd->add_option("--body,-b", opts->body, "Update body text")->required();
             cmd->add_option("--health", opts->health, "Health status (onTrack, atRisk, offTrack)");
 
             cmd->callback([opts]() {
                 try {
                     ProjectUpdateCreateInput input;
-                    input.project_id = opts->project_id;
+                    input.project_id = projects_api::resolve_project_id(opts->project_id);
                     input.body = opts->body;
 
                     if (!opts->health.empty()) input.health = opts->health;

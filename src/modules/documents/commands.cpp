@@ -14,6 +14,7 @@
 #include "core/paginator.h"
 #include "modules/documents/api.h"
 #include "modules/documents/model.h"
+#include "modules/projects/api.h"
 
 using json = nlohmann::json;
 
@@ -176,9 +177,10 @@ void documents_commands::register_commands(CLI::App& app) {
             try {
                 json filter = nullptr;
                 if (!opts->project.empty()) {
+                    auto project_id = projects_api::resolve_project_id(opts->project);
                     filter = json::object();
                     json project_filter = json::object();
-                    project_filter["name"] = json::object({{"eq", opts->project}});
+                    project_filter["id"] = json::object({{"eq", project_id}});
                     filter["project"] = project_filter;
                 }
 
@@ -282,7 +284,7 @@ void documents_commands::register_commands(CLI::App& app) {
         cmd->add_option("--title,-t", opts->title, "Document title")->required();
         cmd->add_option("--content,-c", opts->content, "Document content (Markdown)");
         cmd->add_option("--content-file", opts->content_file, "Path to a file containing document content");
-        cmd->add_option("--project", opts->project, "Project ID to associate the document with");
+        cmd->add_option("--project", opts->project, "Project ID or name to associate the document with");
 
         cmd->callback([opts]() {
             try {
@@ -301,7 +303,7 @@ void documents_commands::register_commands(CLI::App& app) {
                 }
 
                 if (!opts->project.empty()) {
-                    input.project_id = opts->project;
+                    input.project_id = projects_api::resolve_project_id(opts->project);
                 }
 
                 auto doc = documents_api::create_document(input);
